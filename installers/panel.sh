@@ -41,10 +41,6 @@ fi
 # Domain name / IP
 FQDN="${FQDN:-localhost}"
 
-# Custom ports
-HTTP_PORT="${HTTP_PORT:-80}"
-HTTPS_PORT="${HTTPS_PORT:-443}"
-
 # Default MySQL credentials
 MYSQL_DB="${MYSQL_DB:-panel}"
 MYSQL_USER="${MYSQL_USER:-pterodactyl}"
@@ -67,36 +63,71 @@ user_username="${user_username:-}"
 user_firstname="${user_firstname:-}"
 user_lastname="${user_lastname:-}"
 user_password="${user_password:-}"
+HTTP_PORT=""
+HTTPS_PORT=""
 
+# Function to prompt and validate port input
+prompt_port() {
+  local port_name="$1"
+  local default_port="$2"
+  local port_var="$3"
+  local port
+
+  while true; do
+    echo -n "* Enter ${port_name} port [${default_port}]: "
+    read -r port
+    port=${port:-$default_port}
+
+    # Validate port is a number between 1 and 65535
+    if [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; then
+      eval "$port_var=$port"
+      break
+    else
+      error "Invalid port number. Please enter a number between 1 and 65535."
+    fi
+  done
+}
+
+# Prompt for required inputs if not set
 if [[ -z "${email}" ]]; then
-  error "Email is required"
-  exit 1
+  echo -n "* Enter email for Let's Encrypt: "
+  read -r email
+  [[ -z "${email}" ]] && error "Email is required" && exit 1
 fi
 
 if [[ -z "${user_email}" ]]; then
-  error "User email is required"
-  exit 1
+  echo -n "* Enter user email: "
+  read -r user_email
+  [[ -z "${user_email}" ]] && error "User email is required" && exit 1
 fi
 
 if [[ -z "${user_username}" ]]; then
-  error "User username is required"
-  exit 1
+  echo -n "* Enter user username: "
+  read -r user_username
+  [[ -z "${user_username}" ]] && error "User username is required" && exit 1
 fi
 
 if [[ -z "${user_firstname}" ]]; then
-  error "User firstname is required"
-  exit 1
+  echo -n "* Enter user first name: "
+  read -r user_firstname
+  [[ -z "${user_firstname}" ]] && error "User first name is required" && exit 1
 fi
 
 if [[ -z "${user_lastname}" ]]; then
-  error "User lastname is required"
-  exit 1
+  echo -n "* Enter user last name: "
+  read -r user_lastname
+  [[ -z "${user_lastname}" ]] && error "User last name is required" && exit 1
 fi
 
 if [[ -z "${user_password}" ]]; then
-  error "User password is required"
-  exit 1
+  echo -n "* Enter user password: "
+  read -r user_password
+  [[ -z "${user_password}" ]] && error "User password is required" && exit 1
 fi
+
+# Prompt for HTTP and HTTPS ports
+prompt_port "HTTP" "80" "HTTP_PORT"
+prompt_port "HTTPS" "443" "HTTPS_PORT"
 
 # --------- Main installation functions -------- #
 
