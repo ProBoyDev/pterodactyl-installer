@@ -41,6 +41,10 @@ fi
 # Domain name / IP
 FQDN="${FQDN:-localhost}"
 
+# Custom ports
+HTTP_PORT="${HTTP_PORT:-80}"
+HTTPS_PORT="${HTTPS_PORT:-443}"
+
 # Default MySQL credentials
 MYSQL_DB="${MYSQL_DB:-panel}"
 MYSQL_USER="${MYSQL_USER:-pterodactyl}"
@@ -127,9 +131,9 @@ install_composer_deps() {
 configure() {
   output "Configuring environment.."
 
-  local app_url="http://$FQDN"
-  [ "$ASSUME_SSL" == true ] && app_url="https://$FQDN"
-  [ "$CONFIGURE_LETSENCRYPT" == true ] && app_url="https://$FQDN"
+  local app_url="http://$FQDN:$HTTP_PORT"
+  [ "$ASSUME_SSL" == true ] && app_url="https://$FQDN:$HTTPS_PORT"
+  [ "$CONFIGURE_LETSENCRYPT" == true ] && app_url="https://$FQDN:$HTTPS_PORT"
 
   # Generate encryption key
   php artisan key:generate --force
@@ -330,9 +334,9 @@ dep_install() {
 # --------------- Other functions -------------- #
 
 firewall_ports() {
-  output "Opening ports: 22 (SSH), 80 (HTTP) and 443 (HTTPS)"
+  output "Opening ports: 22 (SSH), $HTTP_PORT (HTTP) and $HTTPS_PORT (HTTPS)"
 
-  firewall_allow_ports "22 80 443"
+  firewall_allow_ports "22 $HTTP_PORT $HTTPS_PORT"
 
   success "Firewall ports opened!"
 }
@@ -345,7 +349,7 @@ letsencrypt() {
   # Obtain certificate
   certbot --nginx --redirect --no-eff-email --email "$email" -d "$FQDN" || FAILED=true
 
-  # Check if it succeded
+  # Check if it succeeded
   if [ ! -d "/etc/letsencrypt/live/$FQDN/" ] || [ "$FAILED" == true ]; then
     warning "The process of obtaining a Let's Encrypt certificate failed!"
     echo -n "* Still assume SSL? (y/N): "
@@ -393,7 +397,8 @@ configure_nginx() {
   curl -o "$CONFIG_PATH_AVAIL"/pterodactyl.conf "$GITHUB_URL"/configs/$DL_FILE
 
   sed -i -e "s@<domain>@${FQDN}@g" "$CONFIG_PATH_AVAIL"/pterodactyl.conf
-
+  sed -i -e "s@<http_port>@${HTTP_PORT}@g" "$CONFIG_PATH_AVAIL"/pterodactyl.conf
+  sed -i -e "s@<https_port>@${HTTPS_PORT}@g" "$CONFIG_PATH_AVAIL"/pterodactyl.conf
   sed -i -e "s@<php_socket>@${PHP_SOCKET}@g" "$CONFIG_PATH_AVAIL"/pterodactyl.conf
 
   case "$OS" in
